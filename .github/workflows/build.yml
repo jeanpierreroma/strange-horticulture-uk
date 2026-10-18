@@ -27,12 +27,12 @@ jobs:
       - name: Build (Windows)
         if: runner.os == 'Windows'
         run: |
-          pyinstaller --onefile --console --name ukrainizer --add-data "translation.json;." ukrainizer.py
+          pyinstaller --onefile --console --name ukrainizer --add-data "translation.json;." --add-data "textures;textures" ukrainizer.py
           Compress-Archive -Path dist/ukrainizer.exe, README.txt -DestinationPath ${{ matrix.asset }}
       - name: Build (macOS)
         if: runner.os == 'macOS'
         run: |
-          pyinstaller --onefile --console --name ukrainizer --add-data "translation.json:." ukrainizer.py
+          pyinstaller --onefile --console --name ukrainizer --add-data "translation.json:." --add-data "textures:textures" ukrainizer.py
           printf '#!/bin/bash\ncd "$(dirname "$0")"\nxattr -d com.apple.quarantine ./ukrainizer 2>/dev/null\n./ukrainizer\n' > "Встановити.command"
           printf '#!/bin/bash\ncd "$(dirname "$0")"\nxattr -d com.apple.quarantine ./ukrainizer 2>/dev/null\n./ukrainizer --restore\n' > "Повернути оригінал.command"
           chmod +x dist/ukrainizer *.command

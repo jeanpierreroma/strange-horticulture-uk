@@ -1,0 +1,17 @@
+{
+ "Map_Front_Full_Russian": {
+  "file": "Map_Front_Full_Russian.rgba.z",
+  "width": 1800,
+  "height": 960
+ },
+ "Map_Back_Full_Russian": {
+  "file": "Map_Back_Full_Russian.rgba.z",
+  "width": 1800,
+  "height": 960
+ },
+ "Map_Front_Titles_Russian": {
+  "file": "Map_Front_Titles_Russian.rgba.z",
+  "width": 450,
+  "height": 960
+ }
+}

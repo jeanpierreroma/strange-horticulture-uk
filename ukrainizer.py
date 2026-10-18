@@ -1,15 +1,17 @@
 """Українізатор Strange Horticulture.
 Вписує український переклад замість російської мови у файл sharedassets0.assets гри
-(у словник TranslationData, звідки гра бере весь текст). Оригінал зберігається поруч.
+(у словник TranslationData, звідки гра бере весь текст) і українську карту замість російської
+у sharedassets2.assets. Оригінали зберігаються поруч.
 Запуск: ukrainizer [шлях до теки гри] [--restore]"""
 import sys, os, re, json, shutil, struct, hashlib, pathlib, platform
 
 APP = "Strange Horticulture"
 SLOT = "ru"
 BACKUP = "sharedassets0.assets.original"
+MAPS = "sharedassets2.assets"
 HERE = pathlib.Path(getattr(sys, "_MEIPASS", pathlib.Path(__file__).parent))
 sys.path.insert(0, str(HERE))
-import odin, serialized
+import odin, serialized, texture, zlib
 
 
 def steam_roots():
@@ -128,15 +130,44 @@ def patch(path):
     print(f"Готово: перекладено {done} рядків.")
     if changed_en:
         print(f"Увага: у {changed_en} рядках англійський текст гри змінився після оновлення, переклад може бути неточним.")
-    print("У грі виберіть мову «Русский»: замість неї тепер українська.")
+
+
+def patch_maps(path):
+    path = path.with_name(MAPS)
+    if not path.exists():
+        print(f"Не знайшов {MAPS}, карту пропускаю."); return
+    manifest = json.loads((HERE / "textures" / "textures.json").read_text(encoding="utf-8"))
+    sf = serialized.SerializedFile(path.read_bytes())
+    found = {}
+    for o in sf.objects:
+        if sf.classes[o[3]] != 28: continue
+        t = texture.parse(sf.raw(o))
+        if t["name"] in manifest: found[t["name"]] = (o, t)
+    if set(found) != set(manifest):
+        print("Не знайшов у файлі гри всіх картинок карти. Можливо, гра оновилася. Карту пропускаю."); return
+    backup = path.with_name(path.name + ".original")
+    if found["Map_Front_Full_Russian"][1]["format"] != texture.RGBA32:   # в оригіналі карта стиснута (BC7)
+        shutil.copy2(path, backup)
+        print(f"Оригінал збережено: {backup}")
+    for name, (o, t) in found.items():
+        m = manifest[name]
+        pixels = zlib.decompress((HERE / "textures" / m["file"]).read_bytes())
+        sf.replace(o, texture.replace_image(sf.raw(o), m["width"], m["height"], 1, pixels))
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_bytes(sf.bytes())
+    os.replace(tmp, path)
+    print(f"Карту замінено: {len(found)} картинки.")
 
 
 def restore(path):
-    backup = path.with_name(BACKUP)
-    if not backup.exists():
+    done = 0
+    for f in (path, path.with_name(MAPS)):
+        backup = f.with_name(f.name + ".original")
+        if backup.exists():
+            shutil.copy2(backup, f); done += 1
+    if not done:
         raise SystemExit("Резервної копії немає. Поверніть оригінал через Steam: Властивості → Встановлені файли → Перевірити цілісність файлів.")
-    shutil.copy2(backup, path)
-    print("Оригінальний файл повернуто.")
+    print("Оригінальні файли повернуто.")
 
 
 def main():
@@ -151,6 +182,8 @@ def main():
         restore(path)
     else:
         patch(path)
+        patch_maps(path)
+        print("У грі виберіть мову «Русский»: замість неї тепер українська.")
 
 
 if __name__ == "__main__":

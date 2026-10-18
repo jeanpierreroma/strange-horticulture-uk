@@ -20,8 +20,10 @@ class SerializedFile:
         if typetree:
             raise ValueError("файл із typetree не підтримується")
         ntypes, = struct.unpack_from(self.e + "i", self.b, p); p += 4
+        self.classes = []                        # класи типів: 28 — Texture2D, 114 — MonoBehaviour
         for _ in range(ntypes):
             cls, = struct.unpack_from(self.e + "i", self.b, p); p += 4
+            self.classes.append(cls)
             p += 1                               # isStrippedType
             sidx, = struct.unpack_from(self.e + "h", self.b, p); p += 2
             if cls == 114 or sidx >= 0: p += 16  # scriptID
