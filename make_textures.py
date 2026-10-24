@@ -5,7 +5,7 @@
 import sys, os, json, zlib
 from PIL import Image
 
-# текстура гри (російська) → картинка з textures/uk
+# текстура гри (назва російської; патчер підставляє суфікс мови зі SLOT) → картинка з textures/uk
 MAP = {
     "Map_Front_Full_Russian": "Map_Front_Full_Ukrainian.png",
     "Map_Back_Full_Russian": "Map_Back_Full_Ukrainian.png",

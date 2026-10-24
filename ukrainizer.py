@@ -1,12 +1,13 @@
 """Українізатор Strange Horticulture.
-Вписує український переклад замість російської мови у файл sharedassets0.assets гри
-(у словник TranslationData, звідки гра бере весь текст) і українську карту замість російської
+Вписує український переклад замість французької мови у файл sharedassets0.assets гри
+(у словник TranslationData, звідки гра бере весь текст) і українську карту замість французької
 у sharedassets2.assets. Оригінали зберігаються поруч.
 Запуск: ukrainizer [шлях до теки гри] [--restore]"""
 import sys, os, re, json, shutil, struct, hashlib, pathlib, platform
 
 APP = "Strange Horticulture"
-SLOT = "ru"
+SLOT = "fr"
+MAP_SUFFIX = "_French"   # суфікс текстур карти цієї мови в sharedassets2.assets
 BACKUP = "sharedassets0.assets.original"
 MAPS = "sharedassets2.assets"
 HERE = pathlib.Path(getattr(sys, "_MEIPASS", pathlib.Path(__file__).parent))
@@ -99,7 +100,9 @@ def en_key(s):
 
 
 def is_original(items):
-    return any(lang == SLOT and re.search("[ыэъЫЭ]", v or "") for _, lang, _, v, _, _ in items)
+    """Оригінальна французька: є французькі літери і немає кирилиці."""
+    vals = [v or "" for _, lang, _, v, _, _ in items if lang == SLOT]
+    return any(re.search("[éèàçùêâô]", v) for v in vals) and not any(re.search("[а-яіїєґ]", v, re.I) for v in vals)
 
 
 def patch(path):
@@ -138,15 +141,18 @@ def patch_maps(path):
         print(f"Не знайшов {MAPS}, карту пропускаю."); return
     manifest = json.loads((HERE / "textures" / "textures.json").read_text(encoding="utf-8"))
     sf = serialized.SerializedFile(path.read_bytes())
-    found = {}
+    manifest = {k.replace("_Russian", MAP_SUFFIX): v for k, v in manifest.items()}
+    found = {}; maps = []
     for o in sf.objects:
         if sf.classes[o[3]] != 28: continue
         t = texture.parse(sf.raw(o))
+        if t["name"].startswith(("Map_", "Coin_")): maps.append(t["name"])
         if t["name"] in manifest: found[t["name"]] = (o, t)
     if set(found) != set(manifest):
-        print("Не знайшов у файлі гри всіх картинок карти. Можливо, гра оновилася. Карту пропускаю."); return
+        print("Не знайшов у файлі гри всіх картинок карти. Можливо, гра оновилася. Карту пропускаю.")
+        print("Картинки карти у файлі: " + ", ".join(sorted(maps))); return
     backup = path.with_name(path.name + ".original")
-    if found["Map_Front_Full_Russian"][1]["format"] != texture.RGBA32:   # в оригіналі карта стиснута (BC7)
+    if found["Map_Front_Full" + MAP_SUFFIX][1]["format"] != texture.RGBA32:   # в оригіналі карта стиснута (BC7)
         shutil.copy2(path, backup)
         print(f"Оригінал збережено: {backup}")
     for name, (o, t) in found.items():
@@ -183,7 +189,7 @@ def main():
     else:
         patch(path)
         patch_maps(path)
-        print("У грі виберіть мову «Русский»: замість неї тепер українська.")
+        print("У грі виберіть мову «Français»: замість неї тепер українська.")
 
 
 if __name__ == "__main__":
